@@ -33,7 +33,9 @@ public class JSONTools {
 	private static final String PROTOCOL_VERSION = "0.2"; //$NON-NLS-1$
 	private static Validator validator;
 
-	private JSONTools() {}
+	private JSONTools() {
+		// Vollstatisch
+	}
 
 	/**
 	 * transform a clan date to a json date

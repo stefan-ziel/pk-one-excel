@@ -175,6 +175,12 @@ public class PkOneExcel extends HttpServlet {
 		return res;
 	}
 
+	/**
+	 * Start Excel if necessary, load the Workbook and select the sheet
+	 * 
+	 * @param pSheetNumber
+	 * @return the sheet
+	 */
 	Dispatch getSheet(int pSheetNumber) {
 		if (globalSheets == null) {
 			String fileName = (String) getConfig("excel", null); //$NON-NLS-1$
