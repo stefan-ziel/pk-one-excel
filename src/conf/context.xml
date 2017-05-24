@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context docBase="server" path="/pk-one-server" reloadable="true" source="org.eclipse.jst.j2ee.server:server">
+	<Environment name="br.com.claninfo.pkone.log4jconfig" override="false" type="java.lang.String" value="C:\projectdir\config\log.properties"/>
+	<Environment name="br.com.claninfo.pkone.excel" override="false" type="java.lang.String" value="C:\projectdir\data\BLPK.xlsm"/>
+	<Environment name="br.com.claninfo.pkone.validate" override="false" type="java.lang.String" value="false"/>
+</Context>

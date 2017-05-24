@@ -5,9 +5,6 @@
 				document.getElementById("resp").value="Waiting ...";
 				var req = document.getElementById("request").value;
 				var service = "rest";
-				if(document.getElementById("mock").checked){
-					service = "mock";
-				}
 				var url = service+"/"+req;
 				var body = document.getElementById("body").value;
 				var meth = document.getElementById("method").value; 
@@ -40,12 +37,6 @@
 		<h2>Hier testen:</h2>
 		<table>
 			<tr>
-				<td>Mock</td>
-				<td>
-					<input type="checkbox" id="mock">
-				</td>
-			</tr>
-			<tr>
 				<td>Request</td>
 				<td>
 					<select name="request" id="request" onchange="javascript:defaultBody()">
@@ -69,8 +60,8 @@
 				<td>
 					<textarea rows="20" cols="80" name="body" id="body">
 {
-"Version":"0.1"
-"Sprache":"de"
+"Version":"0.2",
+"Sprache":"de",
 "Mitnum":"78190.0",
 "Sparplan":"Standard",
 "Geburtsdatum":"1958-10-01T00:00:00.0",
