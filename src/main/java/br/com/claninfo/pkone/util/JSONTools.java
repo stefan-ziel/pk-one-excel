@@ -5,8 +5,8 @@ package br.com.claninfo.pkone.util;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.Writer;
+import java.util.Date;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import javax.xml.XMLConstants;
@@ -17,6 +17,7 @@ import javax.xml.validation.Validator;
 
 import org.xml.sax.SAXException;
 
+import ch.claninfo.json.AbstractJSONParser;
 import ch.claninfo.json.JSON2DOM;
 import ch.claninfo.json.JSONParseException;
 
@@ -25,18 +26,11 @@ import ch.claninfo.json.JSONParseException;
  */
 public class JSONTools {
 
-	static final Logger LOGGER = Logger.getLogger(JSONTools.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(JSONTools.class.getName());
 
-	static final String ARRAY_TYPE = "array"; //$NON-NLS-1$
-	static final String BOOLEAN_TYPE = "boolean"; //$NON-NLS-1$
-	// Values for type-Attribute
-	static final String DATE_TYPE = "date"; //$NON-NLS-1$
-	static final String NUMBER_TYPE = "number"; //$NON-NLS-1$
-	static final String OBJECT_TYPE = "object"; //$NON-NLS-1$
 	// Constants
-	static final String NULL = "null"; //$NON-NLS-1$
-	static final String TYPE_ATTR = "type"; //$NON-NLS-1$
-	static final String PROTOCOL_VERSION = "0.1"; //$NON-NLS-1$
+	private static final String NULL = "null"; //$NON-NLS-1$
+	private static final String PROTOCOL_VERSION = "0.2"; //$NON-NLS-1$
 	private static Validator validator;
 
 	private JSONTools() {}
@@ -87,30 +81,26 @@ public class JSONTools {
 	}
 
 	/**
-	 * write a document nose
+	 * write closing brace
 	 * 
-	 * @param pFileName name of the docuemnt
-	 * @param pMimeType mime type of the document
-	 * @param pContent document content base 64 encoded
-	 * @param pDocs documents array is already open ?
 	 * @param pOut
-	 * @return document array oened (Always true)
 	 * @throws IOException
 	 */
-	static public boolean writeDocument(String pFileName, String pMimeType, String pContent, boolean pDocs, Writer pOut) throws IOException {
-		if (!pDocs) {
-			writeSep(pOut);
-			writeString("Dokument", pOut); //$NON-NLS-1$
-			pOut.write(":["); //$NON-NLS-1$
-		}
-		writeStart(pOut);
-		writeProp("Name", pFileName, pOut); //$NON-NLS-1$
-		writeSep(pOut);
-		writeProp("MimeType", pMimeType, pOut); //$NON-NLS-1$
-		writeSep(pOut);
-		writeProp("Content", pContent, pOut); //$NON-NLS-1$
-		writeEnd(pOut);
-		return true;
+	static public void writeArrayEnd(Writer pOut) throws IOException {
+		pOut.write(']');
+	}
+
+	/**
+	 * write name and colon and opening brace
+	 * 
+	 * @param pName
+	 * @param pOut
+	 * @throws IOException
+	 */
+	static public void writeArrayStart(String pName, Writer pOut) throws IOException {
+		writeString(pName, pOut);
+		pOut.write(':');
+		pOut.write('[');
 	}
 
 	/**
@@ -146,26 +136,21 @@ public class JSONTools {
 	 * @param pOut
 	 * @throws IOException
 	 */
-	static public void writeProp(String pName, Number pValue, Writer pOut) throws IOException {
-		pOut.write('"');
-		pOut.write(pName);
-		pOut.write('"');
-		pOut.write(':');
-		pOut.write(pValue.toString());
-	}
-
-	/**
-	 * write a complete name value pair
-	 * 
-	 * @param pName
-	 * @param pValue
-	 * @param pOut
-	 * @throws IOException
-	 */
-	static public void writeProp(String pName, String pValue, Writer pOut) throws IOException {
+	static public void writeProp(String pName, Object pValue, Writer pOut) throws IOException {
 		writeString(pName, pOut);
 		pOut.write(':');
-		writeString(pValue, pOut);
+		if (pValue == null) {
+			pOut.write(NULL);
+		} else if (pValue instanceof Number) {
+			pOut.write(pValue.toString());
+		} else if (pValue instanceof Boolean) {
+			pOut.write(pValue.toString());
+		} else if (pValue instanceof Date) {
+			writeString(AbstractJSONParser.STD_DATE_FORMAT.format(pValue), pOut);
+		} else {
+			writeString(pValue.toString(), pOut);
+		}
+
 	}
 
 	/**

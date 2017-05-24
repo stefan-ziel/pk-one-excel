@@ -7,10 +7,9 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import javax.naming.Context;
@@ -22,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.jacob.activeX.ActiveXComponent;
+import com.jacob.com.ComFailException;
 import com.jacob.com.Dispatch;
 import com.jacob.com.Variant;
 
@@ -36,27 +36,19 @@ public class PkOneExcel extends HttpServlet {
 	private static final String VALUE = "Value"; //$NON-NLS-1$
 	private static final String RANGE = "Range"; //$NON-NLS-1$
 	// XML Attributes
-	static final String NAME_ATTR = "name"; //$NON-NLS-1$
-	static final String MIMETYPE_ATTR = "mimetype"; //$NON-NLS-1$
-	static final String TRUE = "true"; //$NON-NLS-1$
+	private static final String TRUE = "true"; //$NON-NLS-1$
 
-	static final DateFormat CLAN_DATETIME_FORMAT = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss"); //$NON-NLS-1$
-	static final DateFormat CLAN_DATE_FORMAT = new SimpleDateFormat("dd.MM.yyyy"); //$NON-NLS-1$
-
-	Logger logger;
-	static final ExcelCellInfo[]  INPUT_MAP = new ExcelCellInfo[] {//
-																																new ExcelCellInfo("Geburtsdatum", 1, "B6"), // //$NON-NLS-1$ //$NON-NLS-2$
+	static final ExcelCellInfo[] INPUT_MAP = new ExcelCellInfo[] {new ExcelCellInfo("Geburtsdatum", 1, "B6"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																new ExcelCellInfo("Mitnum", 1, "B9"), // //$NON-NLS-1$ //$NON-NLS-2$
-																																new ExcelCellInfo("Sparplan", 1, "B10"), // //$NON-NLS-1$ //$NON-NLS-2$
-																																new ExcelCellInfo("Stichtag", 1, "B12"), // //$NON-NLS-1$ //$NON-NLS-2$
+																																new ExcelCellInfo("Sparplan", 1, "B10", "Standard"), // //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+																																new ExcelCellInfo("Stichtag", 1, "B12", date(2017, 12, 1)), // //$NON-NLS-1$ //$NON-NLS-2$
 																																new ExcelCellInfo("Jahreslohn", 1, "B13"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																new ExcelCellInfo("Sparkapital", 1, "B14"), // //$NON-NLS-1$ //$NON-NLS-2$
-																																new ExcelCellInfo("PensDatVor", 1, "B17"), // //$NON-NLS-1$ //$NON-NLS-2$
-																																new ExcelCellInfo("PensDatNach", 1, "B18"), // //$NON-NLS-1$ //$NON-NLS-2$
-																																new ExcelCellInfo("Projektionszinssatz", 1, "B19")// //$NON-NLS-1$ //$NON-NLS-2$
+																																new ExcelCellInfo("PensDatVor", 1, "B17", date(2017, 12, 31)), // //$NON-NLS-1$ //$NON-NLS-2$
+																																new ExcelCellInfo("PensDatNach", 1, "B18", date(2019, 1, 1)), // //$NON-NLS-1$ //$NON-NLS-2$
+																																new ExcelCellInfo("Projektionszinssatz", 1, "B19", Double.valueOf(.01))// //$NON-NLS-1$ //$NON-NLS-2$
 	};
-	static final ExcelCellInfo[] OUTPUT_MAP = new ExcelCellInfo[] {//
-																																	new ExcelCellInfo("EndkapitalNach", 1, "K33"), // //$NON-NLS-1$ //$NON-NLS-2$
+	static final ExcelCellInfo[] OUTPUT_MAP = new ExcelCellInfo[] {	new ExcelCellInfo("EndkapitalNach", 1, "K33"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																	new ExcelCellInfo("EndkapitalVor", 1, "L33"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																	new ExcelCellInfo("UmwandlungssatzNach", 1, "K36"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																	new ExcelCellInfo("UmwandlungssatzVor", 1, "L36"), // //$NON-NLS-1$ //$NON-NLS-2$
@@ -65,12 +57,19 @@ public class PkOneExcel extends HttpServlet {
 																																	new ExcelCellInfo("AltersrenteNachProz", 1, "K38"), // //$NON-NLS-1$ //$NON-NLS-2$
 																																	new ExcelCellInfo("AltersrenteVorProz", 1, "L38") // //$NON-NLS-1$ //$NON-NLS-2$
 	};
+	Logger logger;
 
 	int validate;
 	int globalProcessId = 0;
 
 	Dispatch workbook;
 	Dispatch globalSheets;
+
+	static Date date(int year, int month, int date) {
+		Calendar working = Calendar.getInstance();
+		working.set(year, month - 1, date, 0, 0, 1);
+		return working.getTime();
+	}
 
 	/**
 	 * @see javax.servlet.GenericServlet#destroy()
@@ -176,41 +175,58 @@ public class PkOneExcel extends HttpServlet {
 		return res;
 	}
 
-	Dispatch getSheets() {
+	Dispatch getSheet(int pSheetNumber) {
 		if (globalSheets == null) {
 			String fileName = (String) getConfig("excel", null); //$NON-NLS-1$
-			ActiveXComponent xl = new ActiveXComponent("Excel.Application"); //$NON-NLS-1$
+			ActiveXComponent xl = ActiveXComponent.connectToActiveInstance("Excel.Application"); //$NON-NLS-1$
+			if (xl == null) {
+				xl = ActiveXComponent.createNewInstance("Excel.Application"); //$NON-NLS-1$
+			}
 			Dispatch workbooks = xl.getProperty("Workbooks").toDispatch(); //$NON-NLS-1$
 			workbook = Dispatch.call(workbooks, "Open", new Variant(fileName)).toDispatch(); //$NON-NLS-1$
 			globalSheets = Dispatch.get(workbook, "Worksheets").toDispatch(); //$NON-NLS-1$
 		}
-		return globalSheets;
+		try {
+			return Dispatch.invoke(globalSheets, "Item", Dispatch.Get, new Object[] {Integer.valueOf(pSheetNumber)}, new int[1]).toDispatch(); //$NON-NLS-1$
+		}
+		catch (ComFailException e) {
+			logger.warning("Excel died: " + e.getLocalizedMessage()); //$NON-NLS-1$
+			// Excel died - try again
+			globalSheets = null;
+			return getSheet(pSheetNumber);
+		}
 	}
 
 	void processRequest(Map<String, Object> pJsonRequest, Writer pOut) throws IOException {
-		Dispatch sheets = getSheets();
 		for (ExcelCellInfo info : INPUT_MAP) {
-			Dispatch sheet = Dispatch.invoke(sheets, "Item", Dispatch.Get, new Object[] {info.getSheetNumber()}, new int[1]).toDispatch(); //$NON-NLS-1$
+			Dispatch sheet = getSheet(info.getSheetNumber());
 			Dispatch cell = Dispatch.invoke(sheet, RANGE, Dispatch.Get, new Object[] {info.getCell()}, new int[1]).toDispatch();
 			Object value = pJsonRequest.get(info.getJsonName());
-			if (value != null) {
-				Dispatch.put(cell, VALUE, value);
+			if (value == null) {
+				value = info.getDefault();
 			}
+			Dispatch.put(cell, VALUE, value);
 		}
 
+		JSONTools.writeSep(pOut);
+		JSONTools.writeArrayStart("Simulation", pOut); //$NON-NLS-1$
+		boolean first = true;
 		for (ExcelCellInfo info : OUTPUT_MAP) {
-			Dispatch sheet = Dispatch.invoke(sheets, "Item", Dispatch.Get, new Object[] {info.getSheetNumber()}, new int[1]).toDispatch(); //$NON-NLS-1$
+			Dispatch sheet = getSheet(info.getSheetNumber());
 			Dispatch cell = Dispatch.invoke(sheet, RANGE, Dispatch.Get, new Object[] {info.getCell()}, new int[1]).toDispatch();
-			Object value = Dispatch.get(cell, VALUE);
-			if (value != null) {
+			Variant value = Dispatch.get(cell, VALUE);
+			if (first) {
+				first = false;
+			} else {
 				JSONTools.writeSep(pOut);
-				if (value instanceof Number) {
-					JSONTools.writeProp(info.getJsonName(), (Number) value, pOut);
-				} else {
-					JSONTools.writeProp(info.getJsonName(), value.toString(), pOut);
-				}
 			}
+			JSONTools.writeStart(pOut);
+			JSONTools.writeProp("Name", info.getJsonName(), pOut); //$NON-NLS-1$
+			JSONTools.writeSep(pOut);
+			JSONTools.writeProp("Wert", value.toJavaObject(), pOut); //$NON-NLS-1$
+			JSONTools.writeEnd(pOut);
 		}
+		JSONTools.writeArrayEnd(pOut);
 	}
 
 	String readAll(Reader pIn) throws IOException {
@@ -229,13 +245,13 @@ public class PkOneExcel extends HttpServlet {
 		String jsonName;
 		int sheetNumber;
 		String cell;
+		Object def;
 
-		/**
-		 * @param pJsonName
-		 * @param pSheetNumber
-		 * @param pCell
-		 */
 		public ExcelCellInfo(String pJsonName, int pSheetNumber, String pCell) {
+			this(pJsonName, pSheetNumber, pCell, null);
+		}
+
+		public ExcelCellInfo(String pJsonName, int pSheetNumber, String pCell, Object pDef) {
 			super();
 			jsonName = pJsonName;
 			sheetNumber = pSheetNumber;
@@ -249,6 +265,10 @@ public class PkOneExcel extends HttpServlet {
 			return cell;
 		}
 
+		public Object getDefault() {
+			return def;
+		}
+
 		/**
 		 * @return the jsonName
 		 */
@@ -256,8 +276,8 @@ public class PkOneExcel extends HttpServlet {
 			return jsonName;
 		}
 
-		Integer getSheetNumber() {
-			return Integer.valueOf(sheetNumber);
+		int getSheetNumber() {
+			return sheetNumber;
 		}
 	}
 
