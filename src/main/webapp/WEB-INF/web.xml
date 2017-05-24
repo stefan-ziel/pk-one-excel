@@ -1,0 +1,16 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+	<servlet>
+		<servlet-name>pk-one-server</servlet-name>
+		<display-name>PkOne Server</display-name>
+		<servlet-class>br.com.claninfo.pkone.excel.PkOneExcel</servlet-class>
+	</servlet>
+	
+	<servlet-mapping>
+		<servlet-name>pk-one-server</servlet-name>
+		<url-pattern>/rest/*</url-pattern>
+	</servlet-mapping>  
+</web-app>

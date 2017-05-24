@@ -1,0 +1,100 @@
+<html>
+	<head>
+		<script type="text/javascript">
+			function doit(){
+				document.getElementById("resp").value="Waiting ...";
+				var req = document.getElementById("request").value;
+				var service = "rest";
+				if(document.getElementById("mock").checked){
+					service = "mock";
+				}
+				var url = service+"/"+req;
+				var body = document.getElementById("body").value;
+				var meth = document.getElementById("method").value; 
+
+				document.getElementById("call").textContent=meth+" "+url;
+				
+				var Httpreq = new XMLHttpRequest(); // a new request
+				Httpreq.onreadystatechange = function() {
+					document.getElementById("resp").value = Httpreq.responseText;
+				};
+				Httpreq.open(meth,url,true);
+				Httpreq.send(body);
+			}
+			
+			function defaultBody(yourUrl){
+				var req = document.getElementById("request").value;
+				var text;
+				var meth;
+				if(req == "RESimStart") {
+					text = "{\n\"Version\":\"0.1\",\n\"Sprache\":\"de\",\n\"\"Mitnum\":\"78190.0\"}";
+					meth = "PUT";
+				}
+				document.getElementById("body").value = text;
+				document.getElementById("method").value = meth;
+			}
+
+		</script>
+	</head>
+	<body>
+		<h2>Hier testen:</h2>
+		<table>
+			<tr>
+				<td>Mock</td>
+				<td>
+					<input type="checkbox" id="mock">
+				</td>
+			</tr>
+			<tr>
+				<td>Request</td>
+				<td>
+					<select name="request" id="request" onchange="javascript:defaultBody()">
+						<option value="RESimStart" selected="selected">RESimStart</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>Method</td>
+				<td>
+					<select name="method" id="method">
+						<option value="PUT" selected="selected">PUT</option>
+						<option value="POST">POST</option>
+						<option value="DELETE">DELETE</option>
+						<option value="GET">GET</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>JSON</td>
+				<td>
+					<textarea rows="20" cols="80" name="body" id="body">
+{
+"Version":"0.1"
+"Sprache":"de"
+"Mitnum":"78190.0",
+"Sparplan":"Standard",
+"Geburtsdatum":"1958-10-01T00:00:00.0",
+"Stichtag":"2017-09-30T00:00:00.0",
+"Jahreslohn":100000,
+"Sparkapital":400000,
+"PensDatVor":"2017-12-31T00:00:00.0",
+"PensDatNach":"2019-01-01T00:00:00.0",
+"Projektionszinssatz":0.01
+}
+					</textarea>
+				</td>
+				<td>
+					<textarea rows="20" cols="80" name="resp" id="resp"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<td />
+				<td>
+					<input value="Submit" type="button" onclick="javascript:doit()"/>
+				</td>
+				<td id="call">
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>
