@@ -221,6 +221,9 @@ public class PkOneExcel extends HttpServlet {
 			Dispatch sheet = getSheet(info.getSheetNumber());
 			Dispatch cell = Dispatch.invoke(sheet, RANGE, Dispatch.Get, new Object[] {info.getCell()}, new int[1]).toDispatch();
 			Variant value = Dispatch.get(cell, VALUE);
+			if (value.getvt() == Variant.VariantError) {
+				throw new IOException("Excel formula error in cell " + info.getCell()); //$NON-NLS-1$
+			}
 			if (first) {
 				first = false;
 			} else {
